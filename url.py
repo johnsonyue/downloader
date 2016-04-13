@@ -1,6 +1,7 @@
 import urllib
 import HTMLParser
 import os
+from multiprocessing import Pool
 
 class CaidaParser(HTMLParser.HTMLParser):
 	def __init__(self):
@@ -31,17 +32,9 @@ class CaidaParser(HTMLParser.HTMLParser):
 			href_value = self.get_attr_value("href", attrs);
 			self.file.append(href_value);
 
-def notify(a, b, c):
-	prog = 100.0 * a * b / c;
-	if prog > 100:
-		prog = 100;
-	print '\r%.2f%%' % prog,;
-	if prog == 100:
-		print;
-
 def download(dir, file, url, root):
 	os.chdir(root+dir);
-	urllib.urlretrieve(url, root+dir+file, notify);
+	urllib.urlretrieve(url, root+dir+file);
 
 def recursive_download_dir(seed, depth, dir, root):
 	f = urllib.urlopen(seed+dir);
@@ -49,6 +42,8 @@ def recursive_download_dir(seed, depth, dir, root):
 
 	parser = CaidaParser();
 	parser.feed(text);
+	
+	p = Pool(8);
 
 	for e in parser.file:
 		i = 0;
@@ -56,7 +51,11 @@ def recursive_download_dir(seed, depth, dir, root):
 			print "--",
 			i = i+1;
 		print e;
-		download(dir, e, seed+dir+e, root);
+		p.apply_async(download, args=(dir, e, seed+dir+e, root, ));
+		#download(dir, e, seed+dir+e, root);
+	
+	p.close();
+	p.join();
 
 	for e in parser.dir:
 		i = 0;
