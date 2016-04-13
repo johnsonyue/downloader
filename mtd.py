@@ -1,9 +1,26 @@
+from multiprocessing import Pool
+import urllib
+import os
 
-a = "www.baidu.com"
-b = "www.bing.com"
-c = "www.sohu.com"
+def download(url):
+	#text = urllib.open(url).read();
+	print "download", url,"done";
 
-list = [a, b, c];
+if __name__=='__main__':
+	a = "www.baidu.com"
+	b = "www.bing.com"
+	c = "www.sohu.com"
 
-ls
+	list = [a, b, c];
 
+	print "parent pid:",os.getpid();
+	p = Pool(4);
+	for i in range(3):
+		print "start task", i;
+		p.apply_async(download,args=(i,));
+
+	print "waiting..";
+	p.close();
+	p.join();
+
+print "done.";

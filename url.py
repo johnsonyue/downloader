@@ -1,5 +1,6 @@
 import urllib
 import HTMLParser
+import os
 
 class CaidaParser(HTMLParser.HTMLParser):
 	def __init__(self):
@@ -30,8 +31,20 @@ class CaidaParser(HTMLParser.HTMLParser):
 			href_value = self.get_attr_value("href", attrs);
 			self.file.append(href_value);
 
-def recursive_download_dir(depth, path):
-	f = urllib.urlopen(path);
+def notify(a, b, c):
+	prog = 100.0 * a * b / c;
+	if prog > 100:
+		prog = 100;
+	print '\r%.2f%%' % prog,;
+	if prog == 100:
+		print;
+
+def download(dir, file, url, root):
+	os.chdir(root+dir);
+	urllib.urlretrieve(url, root+dir+file, notify);
+
+def recursive_download_dir(seed, depth, dir, root):
+	f = urllib.urlopen(seed+dir);
 	text = f.read();
 
 	parser = CaidaParser();
@@ -43,6 +56,7 @@ def recursive_download_dir(depth, path):
 			print "--",
 			i = i+1;
 		print e;
+		download(dir, e, seed+dir+e, root);
 
 	for e in parser.dir:
 		i = 0;
@@ -50,7 +64,10 @@ def recursive_download_dir(depth, path):
 			print "--",
 			i = i+1;
 		print e;
-		recursive_download_dir(depth+1, path+e)
+		if not os.path.exists(root+e):
+			os.mkdir(root+dir+e);
+
+		recursive_download_dir(seed, depth+1, dir+e, root)
 
 seed = "http://data.caida.org/datasets/topology/ark/"
-recursive_download_dir(0, seed);
+recursive_download_dir(seed, 0, "", "/home/john/data/");
