@@ -1,6 +1,8 @@
 import urllib
 import HTMLParser
 import os
+import time
+from multiprocessing import Pool
 
 class CaidaParser(HTMLParser.HTMLParser):
 	def __init__(self):
@@ -31,44 +33,41 @@ class CaidaParser(HTMLParser.HTMLParser):
 			href_value = self.get_attr_value("href", attrs);
 			self.file.append(href_value);
 
-def notify(a, b, c):
-	prog = 100.0*a*b/c;
-	if prog > 100:
-		prog = 100;
-	print '\r%.2f%%' % prog,;
-
-	if prog == 100:
-		print;
-
 def download(dir, file, url, root):
 	os.chdir(root+dir);
-	urllib.urlretrieve(url, root+dir+file, notify);
+	if not os.path.exists(root+dir+file):
+		urllib.urlretrieve(url, root+dir+file);
+
 
 def recursive_download_dir(seed, depth, dir, root):
+	if not os.path.exists(root):
+		os.mkdir(root);
 	f = urllib.urlopen(seed+dir);
 	text = f.read();
 
 	parser = CaidaParser();
 	parser.feed(text);
 	
+	p = Pool(5);
+	
 	for e in parser.file:
-		i = 0;
-		while i < depth:
+		for i in range(depth):
 			print "--",
-			i = i+1;
 		print e;
-		download(dir, e, seed+dir+e, root);
+		p.apply_async(download, args=(dir, e, seed+dir+e, root, ));
+		#download(dir, e, seed+dir+e, root);
+	
+	p.close();
+	p.join();
 	
 	for e in parser.dir:
-		i = 0;
-		while i < depth:
+		for i in range(depth):
 			print "--",
-			i = i+1;
 		print e;
 		if not os.path.exists(root+e):
 			os.mkdir(root+dir+e);
 
 		recursive_download_dir(seed, depth+1, dir+e, root)
 
-seed = "http://data.caida.org/datasets/topology/ark/ipv4/probe-data/team-1/2014/cycle-20140403"
+seed = "http://data.caida.org/datasets/topology/ark/ipv4/probe-data/team-2/2014/cycle-20140403/"
 recursive_download_dir(seed, 0, "", "/home/john/data/");
